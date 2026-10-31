@@ -1,0 +1,38 @@
+/*
+ * Loop.xs - root XS file.
+ *
+ * Thin wrapper (the Chandra pattern): pull in the C implementation headers,
+ * then splice the per-component XS fragments via INCLUDE: so xsubpp compiles
+ * them all into one Loop.c / Loop.o - no EUMM subdir-object trouble.
+ *
+ *   include/  - the C core (future, DBI executor, object dispatch)
+ *   xs/       - the XS fragments, one per package
+ */
+
+#define PERL_NO_GET_CONTEXT
+#include "EXTERN.h"
+#include "perl.h"
+#include "XSUB.h"
+
+#include "dbil_compat.h"   /* perl-version shims: must come first */
+
+#include "dbil_future.h"   /* DBIx::Loop::Future (C)             */
+#include "dbil_run.h"      /* run one DBI statement from C       */
+#include "dbil_vt.h"       /* pure-C loop seam (adapter vtable)  */
+#include "dbil_pool.h"     /* Backend B: forked worker pool      */
+#include "dbil_txn.h"      /* transactions pinned to a pool slot */
+#include "dbil_native.h"   /* Backend A: native fd async (Pg)    */
+#include "dbil_hm.h"       /* Hyperman adapter over its C ABI    */
+#include "dbil_obs.h"      /* statement observers (v2); fired by dbil_loop */
+#include "dbil_obs_perl.h" /* ... and the Perl door onto that registry */
+#include "dbil_loop.h"     /* driver-name, capability, dispatch  */
+#include "dbil_abi.h"      /* the public C ABI (installed header) */
+#include "dbil_abi_impl.h" /* ... and the provider side of it     */
+
+MODULE = DBIx::Loop        PACKAGE = DBIx::Loop
+
+INCLUDE: xs/loop.xs
+INCLUDE: xs/future.xs
+INCLUDE: xs/txn.xs
+INCLUDE: xs/loop_hyperman.xs
+INCLUDE: xs/abi.xs
